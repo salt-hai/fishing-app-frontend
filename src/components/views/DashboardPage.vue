@@ -1,233 +1,259 @@
 <template>
-  <div class="dashboard-page">
-    <!-- 概览卡片 -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon users">
-          <i class="fas fa-users"></i>
-        </div>
-        <div class="stat-content">
-          <h3>总用户数</h3>
-          <div class="stat-value">{{ dashboardData.user_stats?.total_users || 0 }}</div>
-          <div class="stat-change positive">
-            <i class="fas fa-arrow-up"></i>
-            +{{ dashboardData.user_stats?.new_users || 0 }} 新用户
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon venues">
-          <i class="fas fa-map-marker-alt"></i>
-        </div>
-        <div class="stat-content">
-          <h3>钓点总数</h3>
-          <div class="stat-value">{{ dashboardData.venue_stats?.total_venues || 0 }}</div>
-          <div class="stat-change">
-            <span class="active">{{ dashboardData.venue_stats?.active_venues || 0 }} 活跃</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon bookings">
-          <i class="fas fa-calendar-check"></i>
-        </div>
-        <div class="stat-content">
-          <h3>总订单数</h3>
-          <div class="stat-value">{{ dashboardData.booking_stats?.total_bookings || 0 }}</div>
-          <div class="stat-change">
-            <span class="completion">{{ (dashboardData.booking_stats?.completion_rate * 100 || 0).toFixed(1) }}% 完成率</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon revenue">
-          <i class="fas fa-dollar-sign"></i>
-        </div>
-        <div class="stat-content">
-          <h3>总收入</h3>
-          <div class="stat-value">¥{{ formatCurrency(dashboardData.revenue_stats?.total_revenue || 0) }}</div>
-          <div class="stat-change positive">
-            <i class="fas fa-arrow-up"></i>
-            ¥{{ formatCurrency(dashboardData.revenue_stats?.average_booking_value || 0) }} 平均值
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 图表区域 -->
-    <div class="charts-grid">
-      <!-- 用户增长图表 -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>用户增长趋势</h3>
-          <div class="chart-controls">
-            <select v-model="growthGroupBy" @change="loadUserGrowth">
-              <option value="day">按日</option>
-              <option value="week">按周</option>
-              <option value="month">按月</option>
-            </select>
-          </div>
-        </div>
-        <div class="chart-content">
-          <canvas ref="userGrowthChart"></canvas>
-        </div>
-      </div>
-
-      <!-- 收入分析图表 -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>收入分析</h3>
-          <div class="chart-controls">
-            <select v-model="revenueDays" @change="loadRevenueAnalysis">
-              <option value="7">最近7天</option>
-              <option value="30">最近30天</option>
-              <option value="90">最近90天</option>
-            </select>
-          </div>
-        </div>
-        <div class="chart-content">
-          <canvas ref="revenueChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- 场地表现排行 -->
-    <div class="venue-performance">
-      <div class="section-header">
-        <h3>场地表现排行</h3>
-        <button class="btn-refresh" @click="loadVenuePerformance">
-          <i class="fas fa-sync-alt"></i> 刷新
-        </button>
-      </div>
-      <div class="venue-table">
-        <div class="table-header">
-          <div class="table-cell">场地名称</div>
-          <div class="table-cell">预订数</div>
-          <div class="table-cell">收入</div>
-          <div class="table-cell">平均价值</div>
-          <div class="table-cell">评分</div>
-          <div class="table-cell">入住率</div>
-        </div>
-        <div v-for="venue in venuePerformance" :key="venue.venue_id" class="table-row">
-          <div class="table-cell venue-name">
-            <div class="venue-info">
-              <div class="venue-title">{{ venue.venue_name }}</div>
-              <div class="venue-location">{{ venue.location }}</div>
+  <div class="dashboard-container">
+    <!-- 统计卡片 -->
+    <el-row :gutter="20" class="stats-row">
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon user-icon">
+              <el-icon><User /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-title">总用户数</div>
+              <div class="stat-value">{{ dashboardStats.totalUsers || 0 }}</div>
+              <div class="stat-trend positive">
+                <span>今日新增: {{ dashboardStats.newUsersToday || 0 }}</span>
+              </div>
             </div>
           </div>
-          <div class="table-cell">{{ venue.bookings }}</div>
-          <div class="table-cell">¥{{ formatCurrency(venue.revenue) }}</div>
-          <div class="table-cell">¥{{ formatCurrency(venue.average_booking_value) }}</div>
-          <div class="table-cell">
-            <span class="rating">{{ venue.rating.toFixed(1) }}</span>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon venue-icon">
+              <el-icon><Location /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-title">钓点总数</div>
+              <div class="stat-value">{{ dashboardStats.totalVenues || 0 }}</div>
+              <div class="stat-trend">
+                <span>活跃钓点: {{ dashboardStats.activeVenues || 0 }}</span>
+              </div>
+            </div>
           </div>
-          <div class="table-cell">
-            <span class="occupancy-rate">{{ (venue.occupancy_rate * 100).toFixed(1) }}%</span>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon order-icon">
+              <el-icon><ShoppingCart /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-title">今日订单</div>
+              <div class="stat-value">{{ dashboardStats.todayOrders || 0 }}</div>
+              <div class="stat-trend">
+                <span>待处理: {{ dashboardStats.pendingOrders || 0 }}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 最近活动 -->
-    <div class="recent-activities">
-      <div class="section-header">
-        <h3>最近活动</h3>
-      </div>
-      <div class="activity-list">
-        <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
-          <div class="activity-icon" :class="activity.type">
-            <i :class="getActivityIcon(activity.type)"></i>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="6">
+        <el-card class="stat-card">
+          <div class="stat-content">
+            <div class="stat-icon revenue-icon">
+              <el-icon><Money /></el-icon>
+            </div>
+            <div class="stat-info">
+              <div class="stat-title">今日收入</div>
+              <div class="stat-value">¥{{ formatCurrency(dashboardStats.todayRevenue || 0) }}</div>
+              <div class="stat-trend positive">
+                <span>+{{ dashboardStats.revenueGrowth || 0 }}%</span>
+              </div>
+            </div>
           </div>
-          <div class="activity-content">
-            <div class="activity-title">{{ activity.title }}</div>
-            <div class="activity-description">{{ activity.description }}</div>
-            <div class="activity-time">{{ formatTime(activity.timestamp) }}</div>
+        </el-card>
+      </el-col>
+    </el-row>
+    
+    <!-- 图表区域 -->
+    <el-row :gutter="20" class="charts-row">
+      <el-col :span="12">
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>用户增长趋势</span>
+              <el-radio-group v-model="userGrowthPeriod" @change="loadUserGrowthData">
+                <el-radio-button label="7">近7天</el-radio-button>
+                <el-radio-button label="30">近30天</el-radio-button>
+                <el-radio-button label="90">近90天</el-radio-button>
+              </el-radio-group>
+            </div>
+          </template>
+          <div ref="userGrowthChart" style="height: 300px;"></div>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="12">
+        <el-card class="chart-card">
+          <template #header>
+            <div class="card-header">
+              <span>订单统计</span>
+              <el-button type="primary" size="small" @click="refreshOrderStats">
+                <el-icon><Refresh /></el-icon> 刷新
+              </el-button>
+            </div>
+          </template>
+          <div ref="orderChart" style="height: 300px;"></div>
+        </el-card>
+      </el-col>
+    </el-row>
+    
+    <!-- 最新活动 -->
+    <el-row :gutter="20" class="activity-row">
+      <el-col :span="12">
+        <el-card class="activity-card">
+          <template #header>
+            <span>最新用户活动</span>
+          </template>
+          <el-table :data="recentActivities.users" style="width: 100%">
+            <el-table-column prop="nickname" label="用户名" width="120" />
+            <el-table-column prop="activity" label="活动" />
+            <el-table-column prop="time" label="时间" width="120" />
+          </el-table>
+        </el-card>
+      </el-col>
+      
+      <el-col :span="12">
+        <el-card class="activity-card">
+          <template #header>
+            <span>系统通知</span>
+          </template>
+          <div class="notification-list">
+            <div v-for="notification in recentNotifications" :key="notification.id" 
+                 class="notification-item" :class="notification.type">
+              <div class="notification-header">
+                <el-tag :type="getNotificationType(notification.type)" size="small">
+                  {{ notification.category }}
+                </el-tag>
+                <span class="notification-time">{{ formatTime(notification.created_at) }}</span>
+              </div>
+              <div class="notification-title">{{ notification.title }}</div>
+              <div class="notification-content">{{ notification.message }}</div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </el-card>
+      </el-col>
+    </el-row>
+    
+    <!-- 热门钓点 -->
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-card class="venue-card">
+          <template #header>
+            <div class="card-header">
+              <span>热门钓点排行</span>
+              <el-button type="primary" size="small" @click="$router.push('/admin/venues/list')">
+                查看全部 <el-icon><ArrowRight /></el-icon>
+              </el-button>
+            </div>
+          </template>
+          <el-table :data="popularVenues" style="width: 100%">
+            <el-table-column type="index" label="排名" width="60" />
+            <el-table-column prop="venue_name" label="钓点名称" width="200" />
+            <el-table-column prop="city" label="城市" width="100" />
+            <el-table-column prop="venue_score" label="评分" width="80">
+              <template #default="scope">
+                <el-rate v-model="scope.row.venue_score" disabled />
+              </template>
+            </el-table-column>
+            <el-table-column prop="online_count" label="在线人数" width="100" />
+            <el-table-column prop="favorite_count" label="收藏数" width="100" />
+            <el-table-column prop="fishing_count" label="在钓人数" width="100" />
+            <el-table-column label="操作" width="120">
+              <template #default="scope">
+                <el-button type="primary" size="small" @click="viewVenueDetail(scope.row.venue_id)">
+                  查看详情
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script>
 import { ref, reactive, onMounted, nextTick } from 'vue'
-import { Chart } from 'chart.js/auto'
+import { useRouter } from 'vue-router'
+import * as echarts from 'echarts'
+import {
+  User, Location, ShoppingCart, Money, Refresh, ArrowRight
+} from '@element-plus/icons-vue'
 
 export default {
-  name: 'DashboardPage',
+  name: 'Dashboard',
+  components: {
+    User, Location, ShoppingCart, Money, Refresh, ArrowRight
+  },
   setup() {
-    const dashboardData = reactive({})
-    const userGrowthChart = ref(null)
-    const revenueChart = ref(null)
-    const venuePerformance = ref([])
-    const recentActivities = ref([])
-    const growthGroupBy = ref('day')
-    const revenueDays = ref(30)
-
-    // 最近活动数据
-    const activitiesData = [
+    const router = useRouter()
+    
+    const dashboardStats = reactive({
+      totalUsers: 0,
+      newUsersToday: 0,
+      totalVenues: 0,
+      activeVenues: 0,
+      todayOrders: 0,
+      pendingOrders: 0,
+      todayRevenue: 0,
+      revenueGrowth: 0
+    })
+    
+    const userGrowthPeriod = ref('7')
+    const recentActivities = reactive({
+      users: [],
+      venues: []
+    })
+    
+    const recentNotifications = ref([
       {
         id: 1,
-        type: 'user',
-        title: '新用户注册',
-        description: '用户 "张三" 完成了注册',
-        timestamp: new Date(Date.now() - 5 * 60000)
+        title: '新用户注册量激增',
+        message: '今日新增用户128人，较昨日增长45%',
+        category: '用户',
+        type: 'success',
+        created_at: new Date()
       },
       {
         id: 2,
-        type: 'booking',
-        title: '新预订创建',
-        description: '在 "西湖钓场" 创建了新的预订',
-        timestamp: new Date(Date.now() - 15 * 60000)
+        title: '商品库存预警',
+        message: '商品"XX品牌钓竿"库存不足，请及时补货',
+        category: '商城',
+        type: 'warning',
+        created_at: new Date(Date.now() - 3600000)
       },
       {
         id: 3,
-        type: 'payment',
-        title: '支付完成',
-        description: '订单 #12345 支付成功',
-        timestamp: new Date(Date.now() - 30 * 60000)
-      },
-      {
-        id: 4,
-        type: 'venue',
-        title: '场地更新',
-        description: '"东湖钓场" 更新了场地信息',
-        timestamp: new Date(Date.now() - 45 * 60000)
-      },
-      {
-        id: 5,
-        type: 'system',
-        title: '系统维护',
-        description: '系统执行了定期数据备份',
-        timestamp: new Date(Date.now() - 60 * 60000)
+        title: '钓点举报待处理',
+        message: '有3个钓点举报信息需要处理',
+        category: '钓点',
+        type: 'danger',
+        created_at: new Date(Date.now() - 7200000)
       }
-    ]
-
-    const getActivityIcon = (type) => {
-      const icons = {
-        user: 'fas fa-user-plus',
-        booking: 'fas fa-calendar-plus',
-        payment: 'fas fa-credit-card',
-        venue: 'fas fa-map-marker-alt',
-        system: 'fas fa-cog'
-      }
-      return icons[type] || 'fas fa-info-circle'
-    }
-
+    ])
+    
+    const popularVenues = ref([])
+    const userGrowthChart = ref(null)
+    const orderChart = ref(null)
+    
     const formatCurrency = (value) => {
-      return value.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      return value.toLocaleString('zh-CN')
     }
-
+    
     const formatTime = (date) => {
       const now = new Date()
       const diff = now - date
       const minutes = Math.floor(diff / 60000)
       const hours = Math.floor(diff / 3600000)
       const days = Math.floor(diff / 86400000)
-
+      
       if (minutes < 1) return '刚刚'
       if (minutes < 60) return `${minutes}分钟前`
       if (hours < 24) return `${hours}小时前`
@@ -235,278 +261,320 @@ export default {
       
       return date.toLocaleDateString('zh-CN')
     }
-
-    const loadDashboardData = async () => {
+    
+    const getNotificationType = (type) => {
+      const types = {
+        success: 'success',
+        warning: 'warning',
+        danger: 'danger',
+        info: 'info'
+      }
+      return types[type] || 'info'
+    }
+    
+    const loadDashboardStats = async () => {
       try {
-        // 模拟API调用
-        // const response = await fetch('/api/v1/analytics/dashboard')
-        // dashboardData.value = await response.json()
-        
-        // 使用模拟数据
-        dashboardData.user_stats = {
-          total_users: 1234,
-          new_users: 45,
-          active_users: 856
-        }
-        dashboardData.venue_stats = {
-          total_venues: 56,
-          active_venues: 48
-        }
-        dashboardData.booking_stats = {
-          total_bookings: 892,
-          completed_bookings: 756,
-          completion_rate: 0.847
-        }
-        dashboardData.revenue_stats = {
-          total_revenue: 156780,
-          average_booking_value: 175.76,
-          conversion_rate: 0.085
-        }
+        // 调用各种API获取统计数据
+        await Promise.all([
+          loadUserStats(),
+          loadVenueStats(),
+          loadOrderStats(),
+          loadRevenueStats()
+        ])
       } catch (error) {
-        console.error('加载仪表板数据失败:', error)
+        console.error('加载统计数据失败:', error)
       }
     }
-
-    const loadUserGrowth = async () => {
+    
+    const loadUserStats = async () => {
       try {
-        // 模拟API调用
-        // const response = await fetch(`/api/v1/analytics/user-growth?group_by=${growthGroupBy.value}`)
+        // 模拟调用用户统计API
+        // const response = await fetch('/api/users/stats')
         // const data = await response.json()
         
         // 使用模拟数据
-        const mockData = {
-          data: [
-            { date: '2024-01-01', total_users: 1000, new_users: 10 },
-            { date: '2024-01-02', total_users: 1015, new_users: 15 },
-            { date: '2024-01-03', total_users: 1035, new_users: 20 },
-            { date: '2024-01-04', total_users: 1050, new_users: 15 },
-            { date: '2024-01-05', total_users: 1070, new_users: 20 },
-            { date: '2024-01-06', total_users: 1095, new_users: 25 },
-            { date: '2024-01-07', total_users: 1120, new_users: 25 }
-          ]
+        dashboardStats.totalUsers = 12345
+        dashboardStats.newUsersToday = 128
+      } catch (error) {
+        console.error('加载用户统计失败:', error)
+      }
+    }
+    
+    const loadVenueStats = async () => {
+      try {
+        // 模拟调用钓点统计API
+        // const response = await fetch('/api/venues/stats')
+        // const data = await response.json()
+        
+        dashboardStats.totalVenues = 256
+        dashboardStats.activeVenues = 198
+        
+        // 加载热门钓点
+        popularVenues.value = [
+          {
+            venue_id: 'venue_001',
+            venue_name: '厦门同安水库',
+            city: '厦门',
+            venue_score: 4.8,
+            online_count: 45,
+            favorite_count: 1200,
+            fishing_count: 23
+          },
+          {
+            venue_id: 'venue_002',
+            venue_name: '五缘湾湿地公园',
+            city: '厦门',
+            venue_score: 4.6,
+            online_count: 38,
+            favorite_count: 980,
+            fishing_count: 18
+          },
+          {
+            venue_id: 'venue_003',
+            venue_name: '筼筜湖',
+            city: '厦门',
+            venue_score: 4.5,
+            online_count: 32,
+            favorite_count: 850,
+            fishing_count: 15
+          },
+          {
+            venue_id: 'venue_004',
+            venue_name: '杏林湾水库',
+            city: '厦门',
+            venue_score: 4.4,
+            online_count: 28,
+            favorite_count: 720,
+            fishing_count: 12
+          },
+          {
+            venue_id: 'venue_005',
+            venue_name: '海沧湖',
+            city: '厦门',
+            venue_score: 4.3,
+            online_count: 25,
+            favorite_count: 650,
+            fishing_count: 10
+          }
+        ]
+      } catch (error) {
+        console.error('加载钓点统计失败:', error)
+      }
+    }
+    
+    const loadOrderStats = async () => {
+      try {
+        // 模拟调用订单统计API
+        // const response = await fetch('/api/mall/orders/stats')
+        // const data = await response.json()
+        
+        dashboardStats.todayOrders = 156
+        dashboardStats.pendingOrders = 23
+      } catch (error) {
+        console.error('加载订单统计失败:', error)
+      }
+    }
+    
+    const loadRevenueStats = async () => {
+      try {
+        // 模拟调用收入统计API
+        // const response = await fetch('/api/mall/revenue/stats')
+        // const data = await response.json()
+        
+        dashboardStats.todayRevenue = 25800
+        dashboardStats.revenueGrowth = 12.5
+      } catch (error) {
+        console.error('加载收入统计失败:', error)
+      }
+    }
+    
+    const loadUserGrowthData = async () => {
+      try {
+        // 模拟调用用户增长API
+        // const response = await fetch(`/api/users/growth?days=${userGrowthPeriod.value}`)
+        // const data = await response.json()
+        
+        // 使用模拟数据
+        const days = parseInt(userGrowthPeriod.value)
+        const chartData = []
+        for (let i = days - 1; i >= 0; i--) {
+          const date = new Date()
+          date.setDate(date.getDate() - i)
+          chartData.push({
+            date: date.toLocaleDateString('zh-CN'),
+            totalUsers: 12000 + Math.random() * 500,
+            newUsers: Math.floor(Math.random() * 100) + 50
+          })
         }
         
         await nextTick()
-        renderUserGrowthChart(mockData.data)
+        renderUserGrowthChart(chartData)
       } catch (error) {
         console.error('加载用户增长数据失败:', error)
       }
     }
-
-    const loadRevenueAnalysis = async () => {
-      try {
-        // 模拟API调用
-        // const response = await fetch(`/api/v1/analytics/revenue-analysis?days=${revenueDays.value}`)
-        // const data = await response.json()
-        
-        // 使用模拟数据
-        const mockData = {
-          daily_data: [
-            { date: '2024-01-01', revenue: 2500, bookings: 12, avg_value: 208.33 },
-            { date: '2024-01-02', revenue: 3200, bookings: 15, avg_value: 213.33 },
-            { date: '2024-01-03', revenue: 2800, bookings: 14, avg_value: 200.00 },
-            { date: '2024-01-04', revenue: 3500, bookings: 16, avg_value: 218.75 },
-            { date: '2024-01-05', revenue: 2900, bookings: 13, avg_value: 223.08 },
-            { date: '2024-01-06', revenue: 4100, bookings: 18, avg_value: 227.78 },
-            { date: '2024-01-07', revenue: 3700, bookings: 17, avg_value: 217.65 }
-          ]
-        }
-        
-        await nextTick()
-        renderRevenueChart(mockData.daily_data)
-      } catch (error) {
-        console.error('加载收入分析数据失败:', error)
-      }
-    }
-
-    const loadVenuePerformance = async () => {
-      try {
-        // 模拟API调用
-        // const response = await fetch('/api/v1/analytics/venue-performance')
-        // venuePerformance.value = await response.json()
-        
-        // 使用模拟数据
-        venuePerformance.value = [
+    
+    const renderUserGrowthChart = (data) => {
+      const chartDom = userGrowthChart.value
+      if (!chartDom) return
+      
+      const chart = echarts.init(chartDom)
+      const option = {
+        title: {
+          text: '用户增长趋势'
+        },
+        tooltip: {
+          trigger: 'axis'
+        },
+        legend: {
+          data: ['总用户数', '新增用户']
+        },
+        xAxis: {
+          type: 'category',
+          data: data.map(item => item.date)
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [
           {
-            venue_id: 1,
-            venue_name: '西湖钓场',
-            location: '杭州西湖',
-            bookings: 89,
-            revenue: 17800,
-            average_booking_value: 200,
-            rating: 4.8,
-            occupancy_rate: 0.85
+            name: '总用户数',
+            type: 'line',
+            data: data.map(item => item.totalUsers),
+            smooth: true,
+            areaStyle: {}
           },
           {
-            venue_id: 2,
-            venue_name: '东湖钓场',
-            location: '武汉东湖',
-            bookings: 76,
-            revenue: 15200,
-            average_booking_value: 200,
-            rating: 4.6,
-            occupancy_rate: 0.78
-          },
-          {
-            venue_id: 3,
-            venue_name: '千岛湖钓场',
-            location: '杭州千岛湖',
-            bookings: 65,
-            revenue: 13000,
-            average_booking_value: 200,
-            rating: 4.7,
-            occupancy_rate: 0.72
-          },
-          {
-            venue_id: 4,
-            venue_name: '太湖钓场',
-            location: '苏州太湖',
-            bookings: 58,
-            revenue: 11600,
-            average_booking_value: 200,
-            rating: 4.5,
-            occupancy_rate: 0.68
-          },
-          {
-            venue_id: 5,
-            venue_name: '洞庭湖钓场',
-            location: '岳阳洞庭湖',
-            bookings: 42,
-            revenue: 8400,
-            average_booking_value: 200,
-            rating: 4.4,
-            occupancy_rate: 0.62
+            name: '新增用户',
+            type: 'bar',
+            data: data.map(item => item.newUsers)
           }
         ]
-      } catch (error) {
-        console.error('加载场地表现数据失败:', error)
       }
+      chart.setOption(option)
     }
-
-    const renderUserGrowthChart = (data) => {
-      const ctx = userGrowthChart.value?.getContext('2d')
-      if (!ctx) return
-
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: data.map(item => item.date),
-          datasets: [
-            {
-              label: '总用户数',
-              data: data.map(item => item.total_users),
-              borderColor: '#3498db',
-              backgroundColor: 'rgba(52, 152, 219, 0.1)',
-              fill: true,
-              tension: 0.4
-            },
-            {
-              label: '新增用户',
-              data: data.map(item => item.new_users),
-              borderColor: '#e74c3c',
-              backgroundColor: 'rgba(231, 76, 60, 0.1)',
-              fill: true,
-              tension: 0.4
-            }
-          ]
+    
+    const renderOrderChart = () => {
+      const chartDom = orderChart.value
+      if (!chartDom) return
+      
+      const chart = echarts.init(chartDom)
+      const option = {
+        title: {
+          text: '订单状态分布'
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
-        }
-      })
-    }
-
-    const renderRevenueChart = (data) => {
-      const ctx = revenueChart.value?.getContext('2d')
-      if (!ctx) return
-
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: data.map(item => item.date),
-          datasets: [
-            {
-              label: '收入',
-              data: data.map(item => item.revenue),
-              backgroundColor: '#2ecc71',
-              borderColor: '#27ae60',
-              borderWidth: 1
-            }
-          ]
+        tooltip: {
+          trigger: 'item'
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function(value) {
-                  return '¥' + value.toLocaleString()
-                }
+        legend: {
+          orient: 'vertical',
+          left: 'left'
+        },
+        series: [
+          {
+            name: '订单状态',
+            type: 'pie',
+            radius: '50%',
+            data: [
+              { value: 1048, name: '已完成' },
+              { value: 735, name: '待支付' },
+              { value: 580, name: '已发货' },
+              { value: 484, name: '待处理' }
+            ],
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
               }
             }
           }
-        }
-      })
+        ]
+      }
+      chart.setOption(option)
     }
-
+    
+    const refreshOrderStats = async () => {
+      await loadOrderStats()
+      await nextTick()
+      renderOrderChart()
+    }
+    
+    const viewVenueDetail = (venueId) => {
+      router.push(`/admin/venues/detail/${venueId}`)
+    }
+    
     onMounted(async () => {
-      await loadDashboardData()
-      await loadUserGrowth()
-      await loadRevenueAnalysis()
-      await loadVenuePerformance()
+      await loadDashboardStats()
+      await loadUserGrowthData()
+      await nextTick()
+      renderOrderChart()
       
-      // 设置最近活动数据
-      recentActivities.value = activitiesData
+      // 模拟加载最近用户活动
+      recentActivities.users = [
+        {
+          nickname: '钓友小明',
+          activity: '注册成为新用户',
+          time: '2分钟前'
+        },
+        {
+          nickname: '钓鱼达人',
+          activity: '发布了新的钓点评价',
+          time: '5分钟前'
+        },
+        {
+          nickname: '老钓手',
+          activity: '购买了商品"XX钓竿"',
+          time: '8分钟前'
+        },
+        {
+          nickname: '新手钓友',
+          activity: '收藏了钓点"同安水库"',
+          time: '12分钟前'
+        },
+        {
+          nickname: '专业钓手',
+          activity: '加入了钓点聊天室',
+          time: '15分钟前'
+        }
+      ]
     })
-
+    
     return {
-      dashboardData,
-      userGrowthChart,
-      revenueChart,
-      venuePerformance,
+      dashboardStats,
+      userGrowthPeriod,
       recentActivities,
-      growthGroupBy,
-      revenueDays,
-      loadUserGrowth,
-      loadRevenueAnalysis,
-      loadVenuePerformance,
-      getActivityIcon,
+      recentNotifications,
+      popularVenues,
+      userGrowthChart,
+      orderChart,
       formatCurrency,
-      formatTime
+      formatTime,
+      getNotificationType,
+      refreshOrderStats,
+      viewVenueDetail
     }
   }
 }
 </script>
 
 <style scoped>
-.dashboard-page {
-  max-width: 1400px;
-  margin: 0 auto;
+.dashboard-container {
+  padding: 20px;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+.stats-row {
+  margin-bottom: 20px;
 }
 
 .stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
+  border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-content {
   display: flex;
   align-items: center;
-  gap: 20px;
 }
 
 .stat-icon {
@@ -518,268 +586,120 @@ export default {
   justify-content: center;
   font-size: 24px;
   color: white;
+  margin-right: 16px;
 }
 
-.stat-icon.users {
+.user-icon {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.stat-icon.venues {
+.venue-icon {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
-.stat-icon.bookings {
+.order-icon {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
-.stat-icon.revenue {
+.revenue-icon {
   background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 }
 
-.stat-content h3 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #2c3e50;
-  margin-bottom: 8px;
-}
-
-.stat-change {
-  font-size: 12px;
-  color: #7f8c8d;
-}
-
-.stat-change.positive {
-  color: #27ae60;
-}
-
-.stat-change .active {
-  color: #3498db;
-}
-
-.stat-change .completion {
-  color: #e74c3c;
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.chart-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.chart-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #2c3e50;
-}
-
-.chart-controls select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.chart-content {
-  height: 300px;
-  position: relative;
-}
-
-.venue-performance {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #2c3e50;
-}
-
-.btn-refresh {
-  padding: 8px 16px;
-  background: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.btn-refresh:hover {
-  background: #2980b9;
-}
-
-.venue-table {
-  overflow-x: auto;
-}
-
-.table-header,
-.table-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
-  gap: 16px;
-  padding: 12px 16px;
-  align-items: center;
-}
-
-.table-header {
-  background: #f8f9fa;
-  border-radius: 8px;
-  font-weight: 600;
-  color: #495057;
-}
-
-.table-row {
-  border-bottom: 1px solid #e9ecef;
-}
-
-.table-row:last-child {
-  border-bottom: none;
-}
-
-.venue-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.venue-title {
-  font-weight: 500;
-  color: #2c3e50;
-  margin-bottom: 4px;
-}
-
-.venue-location {
-  font-size: 12px;
-  color: #7f8c8d;
-}
-
-.rating {
-  background: #f39c12;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.occupancy-rate {
-  background: #2ecc71;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.recent-activities {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.activity-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.activity-item:last-child {
-  border-bottom: none;
-}
-
-.activity-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  color: white;
-  flex-shrink: 0;
-}
-
-.activity-icon.user {
-  background: #3498db;
-}
-
-.activity-icon.booking {
-  background: #2ecc71;
-}
-
-.activity-icon.payment {
-  background: #f39c12;
-}
-
-.activity-icon.venue {
-  background: #e74c3c;
-}
-
-.activity-icon.system {
-  background: #9b59b6;
-}
-
-.activity-content {
+.stat-info {
   flex: 1;
 }
 
-.activity-title {
-  font-weight: 500;
-  color: #2c3e50;
-  margin-bottom: 4px;
-}
-
-.activity-description {
+.stat-title {
   font-size: 14px;
-  color: #7f8c8d;
-  margin-bottom: 4px;
+  color: #666;
+  margin-bottom: 8px;
 }
 
-.activity-time {
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.stat-trend {
   font-size: 12px;
-  color: #bdc3c7;
+  color: #999;
+}
+
+.stat-trend.positive {
+  color: #67c23a;
+}
+
+.charts-row {
+  margin-bottom: 20px;
+}
+
+.chart-card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.activity-row {
+  margin-bottom: 20px;
+}
+
+.activity-card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.notification-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.notification-item {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.notification-item:hover {
+  background-color: #f5f5f5;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.notification-title {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.notification-content {
+  font-size: 14px;
+  color: #666;
+}
+
+.venue-card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>

@@ -1,481 +1,436 @@
 <template>
-  <div class="admin-dashboard">
+  <div class="admin-layout">
     <!-- 侧边栏 -->
-    <div class="sidebar">
+    <el-aside width="250px" class="sidebar">
       <div class="logo">
-        <h2>钓鱼平台管理</h2>
+        <h2>钓鱼平台管理后台</h2>
       </div>
-      <nav class="nav-menu">
-        <router-link to="/admin/dashboard" class="nav-item" active-class="active">
-          <i class="fas fa-tachometer-alt"></i>
-          <span>仪表盘</span>
-        </router-link>
-        <router-link to="/admin/users" class="nav-item" active-class="active">
-          <i class="fas fa-users"></i>
-          <span>用户管理</span>
-        </router-link>
-        <router-link to="/admin/venues" class="nav-item" active-class="active">
-          <i class="fas fa-map-marker-alt"></i>
-          <span>钓点管理</span>
-        </router-link>
-        <router-link to="/admin/orders" class="nav-item" active-class="active">
-          <i class="fas fa-shopping-cart"></i>
-          <span>订单管理</span>
-        </router-link>
-        <router-link to="/admin/mall" class="nav-item" active-class="active">
-          <i class="fas fa-store"></i>
-          <span>商城管理</span>
-        </router-link>
-        <router-link to="/admin/analytics" class="nav-item" active-class="active">
-          <i class="fas fa-chart-line"></i>
-          <span>数据分析</span>
-        </router-link>
-        <router-link to="/admin/system" class="nav-item" active-class="active">
-          <i class="fas fa-cog"></i>
-          <span>系统设置</span>
-        </router-link>
-      </nav>
+      
+      <el-menu
+        :default-active="activeMenu"
+        class="sidebar-menu"
+        background-color="#304156"
+        text-color="#bfcbd9"
+        active-text-color="#409EFF"
+        router
+      >
+        <el-menu-item index="/admin/dashboard">
+          <el-icon><DataLine /></el-icon>
+          <span>仪表板</span>
+        </el-menu-item>
+        
+        <el-sub-menu index="users">
+          <template #title>
+            <el-icon><User /></el-icon>
+            <span>用户管理</span>
+          </template>
+          <el-menu-item index="/admin/users/list">用户列表</el-menu-item>
+          <el-menu-item index="/admin/users/stats">用户统计</el-menu-item>
+          <el-menu-item index="/admin/users/level">用户等级</el-menu-item>
+        </el-sub-menu>
+        
+        <el-sub-menu index="venues">
+          <template #title>
+            <el-icon><Location /></el-icon>
+            <span>钓点管理</span>
+          </template>
+          <el-menu-item index="/admin/venues/list">钓点列表</el-menu-item>
+          <el-menu-item index="/admin/venues/recommended">推荐管理</el-menu-item>
+          <el-menu-item index="/admin/venues/categories">分类管理</el-menu-item>
+          <el-menu-item index="/admin/venues/reports">举报管理</el-menu-item>
+        </el-sub-menu>
+        
+        <el-sub-menu index="mall">
+          <template #title>
+            <el-icon><Shop /></el-icon>
+            <span>商城管理</span>
+          </template>
+          <el-menu-item index="/admin/mall/products">商品管理</el-menu-item>
+          <el-menu-item index="/admin/mall/orders">订单管理</el-menu-item>
+          <el-menu-item index="/admin/mall/secondhand">二手商品</el-menu-item>
+          <el-menu-item index="/admin/mall/repair">维修服务</el-menu-item>
+          <el-menu-item index="/admin/mall/categories">商品分类</el-menu-item>
+        </el-sub-menu>
+        
+        <el-sub-menu index="content">
+          <template #title>
+            <el-icon><Document /></el-icon>
+            <span>内容管理</span>
+          </template>
+          <el-menu-item index="/admin/content/posts">帖子管理</el-menu-item>
+          <el-menu-item index="/admin/content/comments">评论管理</el-menu-item>
+          <el-menu-item index="/admin/content/reports">内容审核</el-menu-item>
+        </el-sub-menu>
+        
+        <el-sub-menu index="system">
+          <template #title>
+            <el-icon><Setting /></el-icon>
+            <span>系统设置</span>
+          </template>
+          <el-menu-item index="/admin/system/config">系统配置</el-menu-item>
+          <el-menu-item index="/admin/system/logs">系统日志</el-menu-item>
+          <el-menu-item index="/admin/system/backup">数据备份</el-menu-item>
+        </el-sub-menu>
+      </el-menu>
+      
       <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar">
-            <img src="https://via.placeholder.com/40" alt="用户头像">
-          </div>
-          <div class="user-details">
-            <div class="user-name">{{ currentUser.name }}</div>
-            <div class="user-role">{{ currentUser.role }}</div>
+        <div class="admin-info">
+          <el-avatar :size="32" :src="adminInfo.avatar_url" />
+          <div class="admin-details">
+            <div class="admin-name">{{ adminInfo.nickname }}</div>
+            <div class="admin-role">超级管理员</div>
           </div>
         </div>
-        <button @click="logout" class="logout-btn">
-          <i class="fas fa-sign-out-alt"></i>
-          退出登录
-        </button>
+        <el-button type="danger" size="small" @click="handleLogout">退出登录</el-button>
       </div>
-    </div>
-
+    </el-aside>
+    
     <!-- 主内容区域 -->
-    <div class="main-content">
+    <el-container class="main-container">
       <!-- 顶部导航栏 -->
-      <div class="topbar">
-        <div class="topbar-left">
-          <button class="menu-toggle" @click="toggleSidebar">
-            <i class="fas fa-bars"></i>
-          </button>
-          <h1 class="page-title">{{ currentPageTitle }}</h1>
+      <el-header class="header">
+        <div class="header-left">
+          <el-button text @click="toggleSidebar">
+            <el-icon><Fold v-if="!sidebarCollapsed" /><Expand v-else /></el-icon>
+          </el-button>
+          <el-breadcrumb separator="/">
+            <el-breadcrumb-item :to="{ path: '/admin' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item>{{ currentPageTitle }}</el-breadcrumb-item>
+          </el-breadcrumb>
         </div>
-        <div class="topbar-right">
-          <div class="notification-bell" @click="toggleNotifications">
-            <i class="fas fa-bell"></i>
-            <span class="badge" v-if="unreadNotifications">{{ unreadNotifications }}</span>
-          </div>
-          <div class="system-status">
-            <span class="status-dot online"></span>
-            <span>系统正常</span>
-          </div>
+        
+        <div class="header-right">
+          <el-badge :value="unreadCount" class="notification-badge">
+            <el-button circle @click="showNotifications = true">
+              <el-icon><Bell /></el-icon>
+            </el-button>
+          </el-badge>
+          
+          <el-dropdown @command="handleUserMenu">
+            <div class="user-dropdown">
+              <el-avatar :size="32" :src="adminInfo.avatar_url" />
+              <span class="username">{{ adminInfo.nickname }}</span>
+              <el-icon><ArrowDown /></el-icon>
+            </div>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                <el-dropdown-item command="settings">账号设置</el-dropdown-item>
+                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
-      </div>
-
+      </el-header>
+      
       <!-- 页面内容 -->
-      <div class="page-content">
+      <el-main class="main-content">
         <router-view />
-      </div>
-    </div>
-
+      </el-main>
+    </el-container>
+    
     <!-- 通知弹窗 -->
-    <div v-if="showNotifications" class="notification-popup" @click="hideNotifications">
-      <div class="notification-content" @click.stop>
-        <div class="notification-header">
-          <h3>系统通知</h3>
-          <button @click="hideNotifications" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="notification-list">
-          <div v-for="notification in notifications" :key="notification.id" class="notification-item">
-            <div class="notification-title">{{ notification.title }}</div>
-            <div class="notification-body">{{ notification.message }}</div>
-            <div class="notification-time">{{ formatTime(notification.created_at) }}</div>
+    <el-drawer
+      v-model="showNotifications"
+      title="系统通知"
+      direction="rtl"
+      size="400px"
+    >
+      <div class="notification-list">
+        <div v-for="notification in notifications" :key="notification.id" 
+             class="notification-item" 
+             :class="{ unread: !notification.read }">
+          <div class="notification-header">
+            <el-tag size="small" :type="notification.type">{{ notification.category }}</el-tag>
+            <span class="notification-time">{{ formatTime(notification.created_at) }}</span>
           </div>
+          <div class="notification-title">{{ notification.title }}</div>
+          <div class="notification-content">{{ notification.message }}</div>
         </div>
       </div>
-    </div>
+    </el-drawer>
   </div>
 </template>
 
 <script>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  DataLine, User, Location, Shop, Document, Setting,
+  Bell, ArrowDown, Fold, Expand
+} from '@element-plus/icons-vue'
 
 export default {
-  name: 'AdminDashboard',
+  name: 'AdminLayout',
+  components: {
+    DataLine, User, Location, Shop, Document, Setting,
+    Bell, ArrowDown, Fold, Expand
+  },
   setup() {
+    const route = useRoute()
     const router = useRouter()
     const sidebarCollapsed = ref(false)
     const showNotifications = ref(false)
     
-    const currentUser = ref({
-      name: '管理员',
-      role: '超级管理员',
-      email: 'admin@fishing-platform.com'
+    const adminInfo = ref({
+      user_id: 'admin_001',
+      nickname: '管理员',
+      avatar_url: 'https://via.placeholder.com/100',
+      phone_number: '13800138000',
+      user_level: 5
     })
-
+    
     const notifications = ref([
       {
         id: 1,
         title: '新用户注册',
-        message: '有5个新用户注册，请审核',
+        message: '有5个新用户注册，请及时审核',
+        category: '用户',
+        type: 'success',
         created_at: new Date(),
         read: false
       },
       {
         id: 2,
-        title: '系统更新',
-        message: '系统将在今晚22:00进行维护更新',
+        title: '商品库存预警',
+        message: '商品"XX钓竿"库存不足，请及时补货',
+        category: '商城',
+        type: 'warning',
         created_at: new Date(Date.now() - 3600000),
         read: false
       },
       {
         id: 3,
         title: '订单异常',
-        message: '发现3个异常订单，请及时处理',
+        message: '订单#20240320001支付异常，请处理',
+        category: '订单',
+        type: 'danger',
         created_at: new Date(Date.now() - 7200000),
         read: true
       }
     ])
-
+    
+    const activeMenu = computed(() => route.path)
+    
     const currentPageTitle = computed(() => {
-      const route = router.currentRoute.value
       const titles = {
-        '/admin/dashboard': '仪表盘',
-        '/admin/users': '用户管理',
-        '/admin/venues': '钓点管理',
-        '/admin/orders': '订单管理',
-        '/admin/mall': '商城管理',
-        '/admin/analytics': '数据分析',
-        '/admin/system': '系统设置'
+        '/admin/dashboard': '仪表板',
+        '/admin/users/list': '用户列表',
+        '/admin/users/stats': '用户统计',
+        '/admin/venues/list': '钓点列表',
+        '/admin/mall/products': '商品管理',
+        '/admin/mall/orders': '订单管理',
+        '/admin/system/config': '系统配置'
       }
       return titles[route.path] || '管理后台'
     })
-
-    const unreadNotifications = computed(() => {
+    
+    const unreadCount = computed(() => {
       return notifications.value.filter(n => !n.read).length
     })
-
+    
     const toggleSidebar = () => {
       sidebarCollapsed.value = !sidebarCollapsed.value
     }
-
-    const toggleNotifications = () => {
-      showNotifications.value = !showNotifications.value
-    }
-
-    const hideNotifications = () => {
-      showNotifications.value = false
-    }
-
+    
     const formatTime = (date) => {
       const now = new Date()
       const diff = now - date
       const minutes = Math.floor(diff / 60000)
       const hours = Math.floor(diff / 3600000)
       const days = Math.floor(diff / 86400000)
-
+      
       if (minutes < 1) return '刚刚'
       if (minutes < 60) return `${minutes}分钟前`
       if (hours < 24) return `${hours}小时前`
       if (days < 7) return `${days}天前`
       
-      return date.toLocaleDateString()
+      return date.toLocaleDateString('zh-CN')
     }
-
-    const logout = () => {
-      if (confirm('确定要退出登录吗？')) {
+    
+    const handleUserMenu = (command) => {
+      if (command === 'profile') {
+        router.push('/admin/profile')
+      } else if (command === 'settings') {
+        router.push('/admin/settings')
+      } else if (command === 'logout') {
+        handleLogout()
+      }
+    }
+    
+    const handleLogout = async () => {
+      try {
+        await ElMessageBox.confirm(
+          '确定要退出登录吗？',
+          '提示',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        )
+        
         // 清除登录状态
         localStorage.removeItem('admin_token')
         localStorage.removeItem('admin_user')
         
         // 跳转到登录页
         router.push('/admin/login')
+        
+        ElMessage.success('退出登录成功')
+      } catch {
+        // 用户取消操作
       }
     }
-
+    
     onMounted(() => {
       // 检查登录状态
       const token = localStorage.getItem('admin_token')
       if (!token) {
         router.push('/admin/login')
       }
+      
+      // 加载管理员信息
+      loadAdminInfo()
     })
-
+    
+    const loadAdminInfo = async () => {
+      try {
+        // 调用API获取当前用户信息
+        // const response = await fetch('/api/auth/me', {
+        //   headers: {
+        //     'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        //   }
+        // })
+        // const data = await response.json()
+        // adminInfo.value = data.user
+      } catch (error) {
+        console.error('加载管理员信息失败:', error)
+      }
+    }
+    
     return {
-      currentUser,
+      adminInfo,
       sidebarCollapsed,
       showNotifications,
       notifications,
-      unreadNotifications,
+      activeMenu,
       currentPageTitle,
+      unreadCount,
       toggleSidebar,
-      toggleNotifications,
-      hideNotifications,
       formatTime,
-      logout
+      handleUserMenu,
+      handleLogout
     }
   }
 }
 </script>
 
 <style scoped>
-.admin-dashboard {
-  display: flex;
+.admin-layout {
   height: 100vh;
-  background-color: #f5f5f5;
+  display: flex;
 }
 
 .sidebar {
-  width: 250px;
-  background-color: #2c3e50;
-  color: white;
+  background-color: #304156;
+  color: #bfcbd9;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s;
-}
-
-.sidebar.collapsed {
-  width: 60px;
 }
 
 .logo {
-  padding: 20px;
-  text-align: center;
-  border-bottom: 1px solid #34495e;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #263445;
 }
 
 .logo h2 {
   margin: 0;
   font-size: 18px;
-  color: #ecf0f1;
+  color: #fff;
 }
 
-.nav-menu {
+.sidebar-menu {
   flex: 1;
-  padding: 20px 0;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  color: #bdc3c7;
-  text-decoration: none;
-  transition: all 0.3s;
-}
-
-.nav-item:hover {
-  background-color: #34495e;
-  color: white;
-}
-
-.nav-item.active {
-  background-color: #3498db;
-  color: white;
-}
-
-.nav-item i {
-  margin-right: 10px;
-  width: 20px;
-  text-align: center;
+  border: none;
 }
 
 .sidebar-footer {
   padding: 20px;
-  border-top: 1px solid #34495e;
+  border-top: 1px solid #263445;
 }
 
-.user-info {
+.admin-info {
   display: flex;
   align-items: center;
   margin-bottom: 15px;
 }
 
-.user-avatar {
-  margin-right: 10px;
+.admin-details {
+  margin-left: 10px;
 }
 
-.user-avatar img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-}
-
-.user-details {
-  flex: 1;
-}
-
-.user-name {
-  font-weight: bold;
+.admin-name {
   font-size: 14px;
-  color: #ecf0f1;
+  color: #fff;
+  font-weight: bold;
 }
 
-.user-role {
+.admin-role {
   font-size: 12px;
-  color: #bdc3c7;
+  color: #bfcbd9;
 }
 
-.logout-btn {
-  width: 100%;
-  padding: 8px 16px;
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.logout-btn:hover {
-  background-color: #c0392b;
-}
-
-.logout-btn i {
-  margin-right: 8px;
-}
-
-.main-content {
+.main-container {
   flex: 1;
   display: flex;
   flex-direction: column;
+  background-color: #f0f2f5;
 }
 
-.topbar {
-  height: 60px;
-  background-color: white;
-  border-bottom: 1px solid #ddd;
+.header {
+  background-color: #fff;
+  border-bottom: 1px solid #e6e6e6;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
+  height: 60px;
 }
 
-.topbar-left {
+.header-left {
   display: flex;
   align-items: center;
 }
 
-.menu-toggle {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  margin-right: 15px;
-  color: #7f8c8d;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 20px;
-  color: #2c3e50;
-}
-
-.topbar-right {
+.header-right {
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
-.notification-bell {
-  position: relative;
+.notification-badge {
   cursor: pointer;
-  color: #7f8c8d;
-  font-size: 18px;
 }
 
-.notification-bell:hover {
-  color: #3498db;
-}
-
-.badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background-color: #e74c3c;
-  color: white;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  font-size: 10px;
+.user-dropdown {
   display: flex;
   align-items: center;
-  justify-content: center;
+  cursor: pointer;
 }
 
-.system-status {
-  display: flex;
-  align-items: center;
+.username {
+  margin: 0 8px;
   font-size: 14px;
-  color: #27ae60;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #27ae60;
-  margin-right: 5px;
-}
-
-.status-dot.online {
-  background-color: #27ae60;
-}
-
-.page-content {
-  flex: 1;
+.main-content {
   padding: 20px;
   overflow-y: auto;
-}
-
-.notification-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.notification-content {
-  background-color: white;
-  border-radius: 8px;
-  width: 400px;
-  max-height: 500px;
-  overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.notification-header {
-  padding: 20px;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.notification-header h3 {
-  margin: 0;
-  color: #2c3e50;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  color: #7f8c8d;
 }
 
 .notification-list {
@@ -483,28 +438,46 @@ export default {
 }
 
 .notification-item {
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+  padding: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.notification-item:hover {
+  background-color: #f5f5f5;
+}
+
+.notification-item.unread {
+  background-color: #e6f7ff;
+  border-left: 3px solid #1890ff;
 }
 
 .notification-item:last-child {
   border-bottom: none;
 }
 
-.notification-title {
-  font-weight: bold;
-  color: #2c3e50;
-  margin-bottom: 5px;
-}
-
-.notification-body {
-  color: #7f8c8d;
-  font-size: 14px;
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 5px;
 }
 
 .notification-time {
-  color: #bdc3c7;
   font-size: 12px;
+  color: #999;
+}
+
+.notification-title {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.notification-content {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.4;
 }
 </style>
